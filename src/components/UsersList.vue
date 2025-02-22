@@ -2,8 +2,10 @@
   <q-layout>
     <q-page-container>
       <q-page class="q-pa-md bg-grey-1">
-        <div class="row items-center justify-between">
-          <div class="text-h4 q-mb-md text-weight-bold text-primary">User Management</div>
+        <div class="row items-center justify-between q-mb-md">
+          <div class="text-h4 text-md-h6 text-sm-body1 text-weight-bold text-primary main-header">
+            User Management
+          </div>
           <q-btn
             label="Add New User"
             color="primary"
@@ -15,7 +17,7 @@
           />
         </div>
 
-        <q-responsive class="full-width">
+        <div class="table-wrapper">
           <q-card flat bordered>
             <q-table
               :rows="users"
@@ -24,9 +26,10 @@
               :loading="loading"
               color="primary"
               title="Users"
-              class="user-table"
+              class="user-table sticky-header"
               :filter="filter"
               :pagination="{ rowsPerPage: 10 }"
+              :grid="$q.screen.lt.md"
             >
               <template v-slot:top>
                 <div class="row full-width items-center">
@@ -82,48 +85,80 @@
                 </q-td>
               </template>
 
-              <!-- <template v-slot:item="props">
-                <q-card class="q-mb-md">
-                  <q-card-section>
-                    <div class="text-h6">{{ props.row.name }}</div>
-                    <div class="text-subtitle2">{{ props.row.email }}</div>
-                    <div class="text-subtitle2">{{ props.row.phone }}</div>
-                  </q-card-section>
-                  <q-separator />
-                  <q-card-actions align="right">
-                    <q-btn
-                      round
-                      flat
-                      size="sm"
-                      color="info"
-                      icon="visibility"
-                      @click="showUserInfo(props.row)"
-                    >
-                      <q-tooltip>View Details</q-tooltip>
-                    </q-btn>
-                    <q-btn
-                      round
-                      flat
-                      size="sm"
-                      color="warning"
-                      icon="edit"
-                      @click="openUserDialog(props.row)"
-                    >
-                      <q-tooltip>Edit User</q-tooltip>
-                    </q-btn>
-                    <q-btn
-                      round
-                      flat
-                      size="sm"
-                      color="negative"
-                      icon="delete"
-                      @click="confirmDelete(props.row)"
-                    >
-                      <q-tooltip>Delete User</q-tooltip>
-                    </q-btn>
-                  </q-card-actions>
-                </q-card>
-              </template> -->
+              <template v-slot:item="props">
+                <div class="q-pa-md col-xs-12 col-sm-6 col-md-4">
+                  <q-card flat bordered class="user-grid-card">
+                    <q-card-section>
+                      <div class="row items-center no-wrap">
+                        <q-avatar color="primary" text-color="white" class="q-mr-sm">
+                          {{
+                            props.row.name
+                              .split(' ')
+                              .map((part) => part[0])
+                              .join('')
+                              .toUpperCase()
+                              .substring(0, 2)
+                          }}
+                        </q-avatar>
+                        <div class="ellipsis">
+                          <div class="text-subtitle1 text-weight-medium">{{ props.row.name }}</div>
+                          <div class="text-caption">{{ props.row.email }}</div>
+                        </div>
+                      </div>
+                    </q-card-section>
+
+                    <q-separator />
+
+                    <q-list dense>
+                      <q-item>
+                        <q-item-section avatar>
+                          <q-icon name="phone" color="primary" size="xs" />
+                        </q-item-section>
+                        <q-item-section>{{ props.row.phone }}</q-item-section>
+                      </q-item>
+                      <q-item v-if="props.row.company && props.row.company.name">
+                        <q-item-section avatar>
+                          <q-icon name="business" color="primary" size="xs" />
+                        </q-item-section>
+                        <q-item-section>{{ props.row.company.name }}</q-item-section>
+                      </q-item>
+                    </q-list>
+
+                    <q-card-actions align="right">
+                      <q-btn
+                        flat
+                        round
+                        color="info"
+                        icon="visibility"
+                        size="sm"
+                        @click="showUserInfo(props.row)"
+                      >
+                        <q-tooltip>View Details</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        flat
+                        round
+                        color="warning"
+                        icon="edit"
+                        size="sm"
+                        @click="openUserDialog(props.row)"
+                      >
+                        <q-tooltip>Edit User</q-tooltip>
+                      </q-btn>
+                      <q-btn
+                        flat
+                        round
+                        color="negative"
+                        icon="delete"
+                        size="sm"
+                        @click="confirmDelete(props.row)"
+                      >
+                        <q-tooltip>Delete User</q-tooltip>
+                      </q-btn>
+                    </q-card-actions>
+                  </q-card>
+                </div>
+              </template>
 
               <template v-slot:no-data>
                 <div class="full-width row flex-center q-pa-md text-grey">No users found</div>
@@ -136,7 +171,7 @@
               </template>
             </q-table>
           </q-card>
-        </q-responsive>
+        </div>
 
         <UserDialog ref="userDialog" />
         <UserInfoDialog ref="userInfoDialog" @edit-user="openUserDialog" />
@@ -181,6 +216,8 @@ const loading = store.loading
 const userDialog = ref(null)
 const filter = ref('')
 const userInfoDialog = ref(null)
+const selectedUserId = ref(null)
+const confirmDeleteDialog = ref(false)
 
 const columns = [
   { name: 'name', label: 'Name', align: 'left', field: 'name' },
@@ -189,8 +226,6 @@ const columns = [
   { name: 'actions', label: 'Actions', align: 'center' },
 ]
 
-const selectedUserId = ref(null)
-const confirmDeleteDialog = ref(false)
 const confirmDelete = (row) => {
   selectedUserId.value = row.id
   confirmDeleteDialog.value = true
@@ -201,20 +236,40 @@ const openUserDialog = (user = null) => userDialog.value?.open(user)
 const showUserInfo = (user) => userInfoDialog.value.open(user)
 const deleteUser = async (id) => await store.deleteUser(id)
 
-onMounted(fetchUsers)
+onMounted(() => {
+  fetchUsers()
+})
 </script>
 
 <style scoped lang="scss">
+.responsive-table-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .user-table {
-  .q-table__card {
-    box-shadow: none;
-    border-radius: 8px;
+  width: 100%;
+
+  .q-table__top,
+  .q-table__bottom {
+    padding: 0;
   }
 
   thead tr {
     th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
       font-weight: bold;
       background-color: #f5f8fa;
+      padding: 12px 16px;
     }
   }
 
@@ -223,12 +278,61 @@ onMounted(fetchUsers)
     &:hover {
       background-color: #f0f9ff !important;
     }
+
+    td {
+      padding: 12px 16px;
+
+      &.action-buttons {
+        white-space: nowrap;
+      }
+    }
   }
+  &.q-table--grid {
+    .q-table__grid-content {
+      min-height: 200px;
+    }
+  }
+}
+
+.user-grid-card {
+  height: 100%;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+
+  &:hover {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .q-card__actions {
+    padding: 8px;
+    background-color: #f5f8fa;
+  }
+}
+
+.sticky-header {
+  max-height: calc(100vh - 100px);
+}
+
+.action-buttons {
+  white-space: nowrap;
+  min-width: 120px;
 }
 
 .confirm-delete-card {
   width: 400px;
   max-width: 90vw;
   border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .search-input {
+    width: 140px;
+  }
+  .main-header {
+    font-size: 28px;
+    width: min-content;
+  }
 }
 </style>

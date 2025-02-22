@@ -1,5 +1,5 @@
 <template>
-  <q-dialog v-model="isOpen" persistent :maximized="$q.screen.lt.sm" @hide="onDialogClose">
+  <q-dialog v-model="isOpen" persistent @hide="onDialogClose">
     <q-card class="user-dialog-card">
       <q-card-section class="bg-primary text-white row items-center justify-between">
         <div class="text-h6">{{ editMode ? 'Edit User' : 'Add New User' }}</div>
@@ -47,7 +47,7 @@
                 v-model="user.phone"
                 label="Phone Number"
                 outlined
-                mask="(###) ###-####"
+                mask="+(###) ##-###-##-##"
                 :rules="[(val) => !!val || 'Phone number is required']"
                 stack-label
               >
@@ -108,7 +108,6 @@
 <script setup>
 import { ref } from 'vue'
 import { useUsersStore } from 'src/stores/user-store.js'
-import { useQuasar } from 'quasar'
 
 const store = useUsersStore()
 const isOpen = ref(false)
@@ -127,7 +126,6 @@ const user = ref({
     city: '',
   },
 })
-const $q = useQuasar()
 
 const open = (existingUser = null) => {
   console.log('existing', existingUser)
@@ -166,12 +164,7 @@ const saveUser = async () => {
     }
     isOpen.value = false
   } else {
-    $q.notify({
-      type: 'negative', // 'positive', 'negative', 'warning', 'info'
-      message: 'Something went wrong',
-      position: 'top-right', // You can change position
-      timeout: 3000, // Auto-close after 3s
-    })
+    throw Error('Please enter valid data')
   }
   editMode.value = false
   // emit('user-saved')
